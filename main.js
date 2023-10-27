@@ -1,7 +1,5 @@
-const ETHERSCAN_API_KEY = 'API_KEY_HERE';  // Replace with your Etherscan API key
-
-
-
+// Import Etherscan API key
+import { etherScanApiKey } from './config.js';
 
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -30,8 +28,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('ethAccountTable').innerHTML = savedTable;
     }
 
-
-
     
     // Check if the element exists before adding the event listener
     const walletConnectButton = document.querySelector('.wallet-connect');
@@ -47,15 +43,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setInterval(connectMetaMaskWallet, 5 * 60 * 1000);
 
-    // document.querySelector('.check-eth-address').addEventListener('click', async (event) => {
-
-    //     const etheriumAddressInput = document.querySelector('.eth-address')
-    //     const ethereumAddress = etheriumAddressInput.value;
-    //     const accBalance = await getEtherscanAccountBalance(ethereumAddress);
-    //     console.log(`Balance for ${ethereumAddress}:`, accBalance, 'ETH');
-    //     const transactions = await getEtherscanAccountTransactions(ethereumAddress);
-    //     console.log(`Last 10 transactions for ${ethereumAddress}:`, transactions);
-    // })
   
 });
 
@@ -114,13 +101,16 @@ async function getEthAccountInfo() {
 
 async function displayTransactions(transactions, divID) {
     
+    let mainOrTestNetTxHash;
+
+
     // Create a table
     const table = document.createElement('table');
     
     // Create table header
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
-    ["Timestamp", "To", "Value"].forEach(headerText => {
+    ["Timestamp", "To", "Value", "Look Up"].forEach(headerText => {
         const th = document.createElement('th');
         th.textContent = headerText;
         headerRow.appendChild(th);
@@ -138,12 +128,36 @@ async function displayTransactions(transactions, divID) {
 
         const valueInWei = BigInt(transaction.value);
         const valueInEther = Number(valueInWei) / 1e18;
-        console.log(valueInEther)
+        //console.log(valueInEther)
+        //console.log(divID)
+        const mainNetTxHash = transaction.hash;
+        const testNetTxHash = transaction.hash;
 
-        const values = [date, transaction.to, valueInEther];
+        if ( divID === "#ethSearchTable") {
+            
+            mainOrTestNetTxHash = `https://etherscan.io/tx/${mainNetTxHash}`
+        } else {
+            
+            mainOrTestNetTxHash = `https://sepolia.etherscan.io/tx/${testNetTxHash}`
+        }
+        
+        // Create an anchor element for "TX Look Up"
+        const anchor = document.createElement('a');
+        anchor.href = mainOrTestNetTxHash;
+        anchor.textContent = 'TX Look Up';
+        anchor.target = '_blank';
+
+        const values = [date, transaction.to, valueInEther, anchor];
         values.forEach(value => {
             const td = document.createElement('td');
-            td.textContent = value;
+            if (value instanceof HTMLAnchorElement) {
+                // Append the anchor element if the value is an anchor
+                td.appendChild(value);  
+            } else {
+                // Otherwise, set the text content as usual
+                td.textContent = value; 
+            }
+            
             row.appendChild(td);
         });
         
@@ -212,14 +226,6 @@ async function connectMetaMaskWallet() {
 
             const transactions = await getEtherscanAccountTestnetTransactions(accounts[0]);
             displayTransactions(transactions, '#ethAccountTable');
-
-            // statEthBalance.innerHTML = `Etherium Balance:<br> ${balance} ETH`
-            // statethValue.innerHTML = `Current Price of ETH<br> $${currentEthPrice.toLocaleString()}`
-            // statwalletUSD.innerHTML = `Wallet Balance in USD:<br> $${currentEthBalUsd.toLocaleString()}`
-
-            //console.log(`Current ETH Value: $${currentEthPrice.toLocaleString()}`)
-            //console.log(`Current Wallet ETH Value: $${currentEthBalUsd.toLocaleString()}`);
-
             
 
             const gasPrice = await getSafeGasEstimate();
@@ -250,12 +256,14 @@ async function getMetaMaskBalance(account) {
         const remainderWei = BigInt(balanceWei) % BigInt("1000000000000000000");
 
         // Convert remainder to a string and pad with leading zeros for correct representation
-        const remainderStr = remainderWei.toString().padStart(18, '0').substr(0, 18);  // get up to 18 decimals
+        // get up to 18 decimals
+        const remainderStr = remainderWei.toString().padStart(18, '0').substr(0, 18);  
 
         // Combine whole number and remainder
         const balanceEther = wholeEther.toString() + "." + remainderStr;
 
-        return balanceEther; // This gives you a string representation of the balance in Ether
+        // This gives you a string representation of the balance in Ether
+        return balanceEther; 
 
     } catch (error) {
         console.error('Error fetching balance:', error);
@@ -289,61 +297,35 @@ function getCoinPriceUSD(coinName) {
 
 
 
-
-// function getEtherscanAccountBalance(address) {
-
-//     const url = `https://api.etherscan.io/api?module=account&action=balance&address=${address}&tag=latest&apikey=${ETHERSCAN_API_KEY}`;
-
-//     return $.ajax({
-//         url: url,
-//         type: 'GET',
-//         dataType: 'json',
-//         headers: {
-//             'Accept': 'application/json'
-//         }
-//     })
-//     .done(data => {
-//         return parseInt(data.result) / 10**18;
-//     })
-//     .fail((jqXHR, textStatus, error) => {
-//         console.log('There was a problem with the fetch operation for', coinName, ':', error);
-//     });
-    
-// }
-
-
 async function getEtherscanAccountBalance(address) {
-    const endpoint = `https://api.etherscan.io/api?module=account&action=balance&address=${address}&tag=latest&apikey=${ETHERSCAN_API_KEY}`;
+    const endpoint = `https://api.etherscan.io/api?module=account&action=balance&address=${address}&tag=latest&apikey=${etherScanApiKey}`;
     const response = await fetch(endpoint);
     const data = await response.json();
-    return parseInt(data.result) / 10**18;  // Convert wei to ETH
+    // This will return the converted wei to ETH
+    return parseInt(data.result) / 10**18;  
 }
 
 async function getEtherscanAccountTransactions(address) {
-    const endpoint = `https://api.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=10&sort=desc&apikey=${ETHERSCAN_API_KEY}`;
+    const endpoint = `https://api.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=10&sort=desc&apikey=${etherScanApiKey}`;
     const response = await fetch(endpoint);
     const data = await response.json();
-    return data.result;  // This will return the last 10 transactions for the given address
+    // This will return the last 10 transactions for the given address
+    return data.result;  
 }
 
 
 async function getEtherscanAccountTestnetTransactions(address) {
-    const endpoint = `https://api-sepolia.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=10&sort=desc&apikey=${ETHERSCAN_API_KEY}`;
+    const endpoint = `https://api-sepolia.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=10&sort=desc&apikey=${etherScanApiKey}`;
     const response = await fetch(endpoint);
     const data = await response.json();
-    return data.result;  // This will return the last 10 transactions for the given address
+    // This will return the last 10 testnet transactions for the given address
+    return data.result;  
 }
 
 async function getSafeGasEstimate() {
-    const endpoint = `https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey=${ETHERSCAN_API_KEY}`;
+    const endpoint = `https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey=${etherScanApiKey}`;
     const response = await fetch(endpoint);
     const data = await response.json();
-    return data.result;  // This will return the safe gas price
-}
-
-async function getSafeGasEstimate() {
-    const endpoint = `https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey=${ETHERSCAN_API_KEY}`;
-    const response = await fetch(endpoint);
-    const data = await response.json();
-    return data;  // This will return the safe gas price
+    // This will return the safe gas price
+    return data.result;  
 }
