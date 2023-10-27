@@ -19,22 +19,33 @@
             <div class="logo">Logo</div>
             <nav>
                 <a href="index.html" class="nav-item">🏠 Wallet</a>
-                <a href="search.html" class="nav-item">💱 Search</a>
+                <a href="#" class="nav-item">💱 Search</a>
                 <a href="#" class="nav-item">🔍 Market</a>
             </nav>
             <button class="wallet-connect">Connect MetaMask</button>
         </aside>
         <main class="content">
             <header>
-                <h1>Please Connect MetaMask</h1>
-                <p>Below you will find various stats tied to your Etherium MetaMask account</p>
+                <h1>Enter Etherium Address</h1>
+                <div class="field has-addons">
+                    <p class="control">
+                      <input class="input eth-address" type="text" placeholder="Etherium Address">
+                    </p>
+                    <p class="control">
+                      <button class="button is-dark check-eth-address">
+                        Search
+                      </button>
+                    </p>
+                </div>
+                <p>View Wallet on EtherScan: <a id="ethSearchAccount" target="_blank"></a></p>
+                
             </header>
             <section class="stats">
-                <div class="stat-item" id="ethBalance"></div>
-                <div class="stat-item" id="ethValue"></div>
-                <div class="stat-item" id="walletUSD"></div>
+                <div class="stat-item" id="ethSearchBalance"></div>
+                <div class="stat-item" id="ethSearchValue"></div>
+                <div class="stat-item" id="walletSearchUSD"></div>
             </section>
-            <div class="lower-content" id="ethAccountTable">
+            <div class="lower-content" id="ethSearchTable">
             </div>
         </main>
     </div>
