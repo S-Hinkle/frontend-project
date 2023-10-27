@@ -56,10 +56,8 @@ async function getEthAccountInfo() {
     const searchWalletLink = document.querySelector('#ethSearchAccount')
     
 
-    
-
-    const etheriumAddressInput = document.querySelector('.eth-address')
-    const ethereumAddress = etheriumAddressInput.value;
+    const ethereumAddressInput = document.querySelector('.eth-address')
+    const ethereumAddress = ethereumAddressInput.value;
     const accBalance = await getEtherscanAccountBalance(ethereumAddress);
     console.log(`Balance for ${ethereumAddress}:`, accBalance, 'ETH');
 
@@ -73,7 +71,7 @@ async function getEthAccountInfo() {
 
 
 
-    searchEthBalance.innerHTML = `Etherium Balance:<br> ${accBalance} ETH`;
+    searchEthBalance.innerHTML = `Ethereum Balance:<br> ${accBalance} ETH`;
     sessionStorage.setItem('searchEthBalance', searchEthBalance.innerHTML);
 
     searchEthValue.innerHTML = `Current Price of ETH<br>$${currentEthPrice.toLocaleString()}`;
@@ -87,7 +85,6 @@ async function getEthAccountInfo() {
     searchWalletLink.setAttribute('href', url)
     searchWalletLink.textContent = `${ethereumAddress}`;
     
-
 }
 
 
@@ -168,8 +165,12 @@ async function displayTransactions(transactions, divID) {
     // Insert the table into the lower-content div
     const lowerContentSearchDiv = document.querySelector(divID);
     // Clear the content of the div
-    lowerContentSearchDiv.innerHTML = '';
-    lowerContentSearchDiv.appendChild(table);
+    if(lowerContentSearchDiv) {
+        lowerContentSearchDiv.innerHTML = '';
+        lowerContentSearchDiv.appendChild(table);
+     } else {
+        console.error('Element with selector', divID, 'not found!');
+     }
 
     const ethAccountTableDiv = document.getElementById('ethAccountTable');
     sessionStorage.setItem('savedTable', ethAccountTableDiv.innerHTML);
@@ -215,7 +216,7 @@ async function connectMetaMaskWallet() {
 
 
             // Set the innerHTML and save to sessionStorage
-            statEthBalance.innerHTML = `Etherium Balance:\n ${balance} ETH`;
+            statEthBalance.innerHTML = `Ethereum Balance:\n ${balance} ETH`;
             sessionStorage.setItem('statEthBalance', statEthBalance.innerHTML);
             
             statethValue.innerHTML = `Current Price of ETH<br>$${currentEthPrice.toLocaleString()}`;
@@ -239,6 +240,7 @@ async function connectMetaMaskWallet() {
         console.error('MetaMask is not installed.');
     }
 }
+
 
 
 
@@ -274,6 +276,7 @@ async function getMetaMaskBalance(account) {
 
 
 
+
 function getCoinPriceUSD(coinName) {
 
     const url = `https://api.coingecko.com/api/v3/coins/${coinName}?sparkline=true`;
@@ -294,6 +297,7 @@ function getCoinPriceUSD(coinName) {
     });
     
 }
+
 
 
 
