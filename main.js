@@ -3,15 +3,18 @@ import { etherScanApiKey } from './config.js';
 
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Get values from sessionStorage
     const storedStatEthBalance = sessionStorage.getItem('statEthBalance');
     const storedStatethValue = sessionStorage.getItem('statethValue');
     const storedStatwalletUSD = sessionStorage.getItem('statwalletUSD');
 
+    // Get required html elements by ID
     const statEthBalance = document.querySelector('#ethBalance')
     const statethValue = document.querySelector('#ethValue')
     const statwalletUSD = document.querySelector('#walletUSD')
     const statethAccountTable = document.querySelector('#ethAccountTable')
 
+    // Check to see if sessionStorage and the elements are present on the page if so load
     if (storedStatEthBalance && statEthBalance) {
         document.querySelector('#ethBalance').innerHTML = storedStatEthBalance;
     }
@@ -22,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelector('#walletUSD').innerHTML = storedStatwalletUSD;
     }
 
-
+    // Check to see if sessionStorage and the elements are present on the page if so load
     const savedTable = sessionStorage.getItem('savedTable');
     if (savedTable && statethAccountTable) {
         document.getElementById('ethAccountTable').innerHTML = savedTable;
@@ -41,6 +44,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 
+    document.querySelector('#sendTransactionForm').addEventListener('submit', metaMaskTransactionForm)
+
     setInterval(connectMetaMaskWallet, 5 * 60 * 1000);
 
   
@@ -50,27 +55,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function getEthAccountInfo() {
 
+    // Get required html elements by ID
     const searchEthBalance = document.querySelector('#ethSearchBalance')
     const searchEthValue = document.querySelector('#ethSearchValue')
     const searchWalletUSD = document.querySelector('#walletSearchUSD')
     const searchWalletLink = document.querySelector('#ethSearchAccount')
     
-
+    // Get the eth address from the user input
     const ethereumAddressInput = document.querySelector('.eth-address')
     const ethereumAddress = ethereumAddressInput.value;
+    // Variable to store the result of the api call for eth address balance
     const accBalance = await getEtherscanAccountBalance(ethereumAddress);
     console.log(`Balance for ${ethereumAddress}:`, accBalance, 'ETH');
 
+    // Variable to store the result of the api call for eth address transactions
     const transactions = await getEtherscanAccountTransactions(ethereumAddress);
     console.log(`Last 10 transactions for ${ethereumAddress}:`, transactions);
     displayTransactions(transactions, '#ethSearchTable');
 
+    // Variable to store object of eth information
     const ethData = await getCoinPriceUSD("ethereum")
     let currentEthPrice = ethData.market_data.current_price.usd;
     let currentEthBalUsd = accBalance * currentEthPrice;
 
-
-
+    // Set the text and links of various elements
     searchEthBalance.innerHTML = `Ethereum Balance:<br> ${accBalance} ETH`;
     sessionStorage.setItem('searchEthBalance', searchEthBalance.innerHTML);
 
@@ -80,16 +88,11 @@ async function getEthAccountInfo() {
     searchWalletUSD.innerHTML = `Wallet Balance in USD:<br> $${currentEthBalUsd.toLocaleString()}`;
     sessionStorage.setItem('searchWalletUSD', searchWalletUSD.innerHTML);
 
-
     let url = `https://etherscan.io/address/${ethereumAddress}`;
     searchWalletLink.setAttribute('href', url)
     searchWalletLink.textContent = `${ethereumAddress}`;
     
 }
-
-
-
-
 
 
 
@@ -183,10 +186,6 @@ async function displayTransactions(transactions, divID) {
 
 
 
-
-
-
-
 async function connectMetaMaskWallet() {
     // Check if MetaMask is installed
     if (typeof window.ethereum !== 'undefined') {
@@ -202,8 +201,6 @@ async function connectMetaMaskWallet() {
             //console.log(`Balance of ${accounts[0]}: ${balance} ETH`);
 
 
-            
-
             const statEthBalance = document.querySelector('#ethBalance')
             const statethValue = document.querySelector('#ethValue')
             const statwalletUSD = document.querySelector('#walletUSD')
@@ -211,8 +208,6 @@ async function connectMetaMaskWallet() {
             const ethData = await getCoinPriceUSD("ethereum")
             let currentEthPrice = ethData.market_data.current_price.usd;
             let currentEthBalUsd = balance * currentEthPrice;
-
-
 
 
             // Set the innerHTML and save to sessionStorage
@@ -275,6 +270,63 @@ async function getMetaMaskBalance(account) {
 
 
 
+async function metaMaskTransactionForm() {
+    event.preventDefault();
+    const recipientAddress = event.target.recipientAddress.value;
+    const amountInEth = event.target.amount.value;
+    console.log(recipientAddress)
+    console.log(amountInEth)
+
+    // Convert the amount in Ether to Wei for the transaction
+    const amountInWei = BigInt(parseFloat(amountInEth / 400) * 10**18).toString();
+    console.log(amountInWei)
+    const weiHex = '0x' + BigInt(amountInWei).toString(16);
+    console.log(weiHex)
+
+    try {
+        const transactionHash = await sendMetaMaskTransaction(recipientAddress, amountInWei);
+        console.log('Transaction successful with hash:', transactionHash);
+    } catch (error) {
+        console.error('Error sending transaction:', error);
+    }
+}
+    
+
+
+
+async function sendMetaMaskTransaction(toAddress, amountInWei) {
+    if (typeof window.ethereum !== 'undefined') {
+        try {
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+            const txParams = {
+                from: accounts[0],  // sender address
+                to: toAddress,      // recipient address
+                value: amountInWei, // in Wei
+                gas: '21000',       // gas limit for a basic transaction (optional)
+                // gasPrice can also be set, but MetaMask will provide a default
+            };
+
+            const txHash = await window.ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [txParams],
+            });
+
+            return txHash;
+
+        } catch (error) {
+            console.error('Error while sending transaction:', error);
+            throw error;
+        }
+    } else {
+        console.error('MetaMask is not installed.');
+        throw new Error('MetaMask not installed');
+    }
+}
+
+
+
+
 
 
 function getCoinPriceUSD(coinName) {
@@ -301,13 +353,41 @@ function getCoinPriceUSD(coinName) {
 
 
 
-async function getEtherscanAccountBalance(address) {
-    const endpoint = `https://api.etherscan.io/api?module=account&action=balance&address=${address}&tag=latest&apikey=${etherScanApiKey}`;
-    const response = await fetch(endpoint);
-    const data = await response.json();
-    // This will return the converted wei to ETH
-    return parseInt(data.result) / 10**18;  
+
+
+function getEtherscanAccountBalance(address) {
+
+    const url = `https://api.etherscan.io/api?module=account&action=balance&address=${address}&tag=latest&apikey=${etherScanApiKey}`;
+
+    return $.ajax({
+        url: url,
+        type: 'GET',
+        dataType: 'json',
+        headers: {
+            'Accept': 'application/json'
+        }
+    })
+    .done(data => {
+        return data.result;
+    })
+    .fail((jqXHR, textStatus, error) => {
+        console.log('There was a problem with the fetch operation for', coinName, ':', error);
+    });
+    
 }
+
+
+
+// async function getEtherscanAccountBalance(address) {
+//     const endpoint = `https://api.etherscan.io/api?module=account&action=balance&address=${address}&tag=latest&apikey=${etherScanApiKey}`;
+//     const response = await fetch(endpoint);
+//     const data = await response.json();
+//     console.log(data)
+//     console.log("text")
+//     console.log(data.result)
+//     // This will return the converted wei to ETH
+//     return parseInt(data.result) / 10**18;  
+// }
 
 async function getEtherscanAccountTransactions(address) {
     const endpoint = `https://api.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=10&sort=desc&apikey=${etherScanApiKey}`;
